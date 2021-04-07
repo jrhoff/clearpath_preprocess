@@ -1,3 +1,4 @@
+import requests, time
 from flask import Flask, render_template, request, jsonify
 from src.cleaner import Cleaner
 import spacy
@@ -5,14 +6,14 @@ from src.preprocessor import SpacyPreProcessor
 from src.deidentification import filter_task, namecheck
 app = Flask(__name__)
 
-app.config['UPLOAD_FOLDER'] = 'UPLOADS/'
-app.config['MAX_CONTENT_PATH'] = '10000000'
+app.config['MAX_CONTENT_PATH'] = '10000000' # 10MB incase of long pathology pdfs
 
 # tells us that when this URL is accessed
 # we run the hello_world function
 
-scispacy = spacy.load('en_core_sci_md')   # do this here to keep it loaded into memory?
-#eng_spacy = spacy.load('en_core_web_sm')  # load spacy english library
+scispacy = spacy.load('en_core_sci_md')   # do this here to keep it loaded into memory, and may as well use for PHI too
+EXTRACTION_ENDPOINT = 'NONE'
+
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
@@ -26,6 +27,7 @@ def submission():
 @app.route('/handle_submission', methods=['POST'])
 def split():
     if request.method == 'POST':
+        start = time.time()
         f = request.files['file']
         text = f.read().decode("utf-8")
         # Remove PHI
@@ -39,6 +41,10 @@ def split():
         preprocessor = SpacyPreProcessor(scispacy)
         text, tokens_list = preprocessor.preprocess_sentences(cleaned_text)
         m = {'text': text, 'tokens': tokens_list}
-        return jsonify(m)
+
+        response = requests.post(url="http://0.0.0.0:5001/", json=m)
+        end = time.time()
+        print(end - start)
+        return response.json()
 
     return 0
