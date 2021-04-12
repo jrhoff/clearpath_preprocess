@@ -7,7 +7,7 @@ RUN ./setup.sh
 
 # Add this entire directory into one called src/
 ADD . /src
-
+COPY nltk_data /root/nltk_data
 # Set working directory
 WORKDIR /src
 

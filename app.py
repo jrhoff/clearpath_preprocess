@@ -42,7 +42,7 @@ def split():
         text, tokens_list = preprocessor.preprocess_sentences(cleaned_text)
         m = {'text': text, 'tokens': tokens_list}
 
-        response = requests.post(url="http://0.0.0.0:5001/", json=m)
+        response = requests.post(url="http://ec2-3-14-252-246.us-east-2.compute.amazonaws.com:5001/", json=m)
         end = time.time()
         print(end - start)
         return response.json()
