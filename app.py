@@ -12,7 +12,17 @@ app.config['MAX_CONTENT_PATH'] = '10000000' # 10MB incase of long pathology pdfs
 # we run the hello_world function
 
 scispacy = spacy.load('en_core_sci_md')   # do this here to keep it loaded into memory, and may as well use for PHI too
-EXTRACTION_ENDPOINT = 'NONE'
+PRODUCTION_ENDPOINT = None
+TEST_ENDPOINT = None
+def get_endpoints():
+    endpoints = {}
+    with open('endpoints.txt','r') as f:
+        for line in f.readlines():
+            tupl = line.strip().split()
+            endpoints[tupl[0]] = tupl[1]
+    PRODUCTION_ENDPOINT = endpoints['production']
+    TEST_ENDPOINT = endpoints['test']
+    return endpoints
 
 @app.route('/')
 def hello_world():
@@ -26,9 +36,17 @@ def submission():
 
 @app.route('/handle_submission', methods=['POST'])
 def split():
+    """
+    This endpoint expects:
+        1 - a file with raw OCR text
+        2 - an email address for the patient/submitter of pathology report
+    :return:
+    """
     if request.method == 'POST':
-        start = time.time()
+        
         f = request.files['file']
+        print(request.form)
+        email = request.form['email']
         text = f.read().decode("utf-8")
         # Remove PHI
         de_identified_text = filter_task(text, scispacy)
@@ -40,14 +58,11 @@ def split():
         # Finally preprocess
         preprocessor = SpacyPreProcessor(scispacy)
         text, tokens_list = preprocessor.preprocess_sentences(cleaned_text)
-        m = {'text': text, 'tokens': tokens_list}
-
-        response = requests.post(url="http://ec2-3-14-252-246.us-east-2.compute.amazonaws.com:5001/", json=m)
-        end = time.time()
-        print(end - start)
+        m = {'text': text, 'tokens': tokens_list, 'email': email}
+        response = requests.post(url=PRODUCTION_ENDPOINT, json=m)
         return response.json()
 
     return 0
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0',port=5000)
+    app.run(host='0.0.0.0', port=5000)

@@ -1,0 +1,2 @@
+production http://ec2-3-14-252-246.us-east-2.compute.amazonaws.com:5001/
+test http://0.0.0.0:5001/
